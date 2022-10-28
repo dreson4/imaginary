@@ -51,6 +51,10 @@ var (
 	aCpus               = flag.Int("cpus", runtime.GOMAXPROCS(-1), "Number of cpu cores to use")
 	aLogLevel           = flag.String("log-level", "info", "Define log level for http-server. E.g: info,warning,error")
 	aReturnSize         = flag.Bool("return-size", false, "Return the image size in the HTTP headers")
+
+	aProxyAddr      = flag.String("proxy-address", "", "Bind proxy address")
+	aProxyPort      = flag.Int("proxy-port", 8085, "Port for proxy server to listen")
+	aProxyUrlSource = flag.String("proxy-url-source", "", "Remote http url to fetch images from")
 )
 
 const usage = `imaginary %s
@@ -69,6 +73,8 @@ Usage:
   imaginary -enable-url-source -placeholder ./placeholder.jpg
   imaginary -enable-url-signature -url-signature-key 4f46feebafc4b5e988f131c4ff8b5997
   imaginary -enable-url-source -forward-headers X-Custom,X-Token
+  imaginary -proxy-port 
+  imaginary -proxy-url-source
   imaginary -h | -help
   imaginary -v | -version
 
@@ -108,6 +114,9 @@ Options:
   -log-level                 Set log level for http-server. E.g: info,warning,error [default: info].
                              Or can use the environment variable GOLANG_LOG=info.
   -return-size               Return the image size with X-Width and X-Height HTTP header. [default: disabled].
+  -proxy-address			 Bind address for the proxy server [default: *]
+  -proxy-port 				 Port for the proxy server to listen to [default: 8085]
+  -proxy-url-source			 Endpoint of the url the proxy server will proxy to.
 `
 
 type URLSignature struct {
@@ -129,6 +138,11 @@ func main() {
 
 	// Only required in Go < 1.5
 	runtime.GOMAXPROCS(*aCpus)
+
+	// If you allow proxying to external URL we automatically enable url source
+	if *aProxyUrlSource != "" {
+		*aEnableURLSource = true
+	}
 
 	port := getPort(*aPort)
 	urlSignature := getURLSignature(*aURLSignatureKey)
@@ -220,6 +234,16 @@ func main() {
 
 	// Load image source providers
 	LoadSources(opts)
+
+	if *aProxyUrlSource != "" {
+		proxyOpts := ProxyServerOptions{
+			ImaginaryPort: getPort(*aPort),
+			ProxyPort:     getPort(*aProxyPort),
+			Endpoint:      *aProxyUrlSource,
+		}
+
+		go ServerProxy(proxyOpts)
+	}
 
 	// Start the server
 	Server(opts)
