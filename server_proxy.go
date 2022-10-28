@@ -13,6 +13,7 @@ type ProxyServerOptions struct {
 	ImaginaryPort int
 	ProxyPort     int
 	Endpoint      string
+	DefaultResize int
 }
 
 func ServerProxy(opts ProxyServerOptions) {
@@ -40,6 +41,10 @@ func ServerProxy(opts ProxyServerOptions) {
 		forwardQuery := ctx.Request.URL.Query()
 		forwardQuery.Add("url", fmt.Sprintf("%s/%s", opts.Endpoint, item))
 		forwardQuery.Del("action")
+		if ctx.Query("width") == "" && ctx.Query("height") == "" && opts.DefaultResize != 0 {
+			forwardQuery.Add("width", fmt.Sprintf("%d", opts.DefaultResize))
+			forwardQuery.Add("height", fmt.Sprintf("%d", opts.DefaultResize))
+		}
 		req.URL.RawQuery = forwardQuery.Encode()
 
 		client := http.DefaultClient

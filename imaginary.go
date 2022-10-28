@@ -52,9 +52,10 @@ var (
 	aLogLevel           = flag.String("log-level", "info", "Define log level for http-server. E.g: info,warning,error")
 	aReturnSize         = flag.Bool("return-size", false, "Return the image size in the HTTP headers")
 
-	aProxyAddr      = flag.String("proxy-address", "", "Bind proxy address")
-	aProxyPort      = flag.Int("proxy-port", 8085, "Port for proxy server to listen")
-	aProxyUrlSource = flag.String("proxy-url-source", "", "Remote http url to fetch images from")
+	aProxyAddr          = flag.String("proxy-address", "", "Bind proxy address")
+	aProxyPort          = flag.Int("proxy-port", 8085, "Port for proxy server to listen")
+	aProxyUrlSource     = flag.String("proxy-url-source", "", "Remote http url to fetch images from")
+	aProxyDefaultResize = flag.Int("proxy-default-resize", 0, "Default width and height for resize")
 )
 
 const usage = `imaginary %s
@@ -75,6 +76,7 @@ Usage:
   imaginary -enable-url-source -forward-headers X-Custom,X-Token
   imaginary -proxy-port 
   imaginary -proxy-url-source
+  imaginary -proxy-default-resize
   imaginary -h | -help
   imaginary -v | -version
 
@@ -117,6 +119,7 @@ Options:
   -proxy-address			 Bind address for the proxy server [default: *]
   -proxy-port 				 Port for the proxy server to listen to [default: 8085]
   -proxy-url-source			 Endpoint of the url the proxy server will proxy to.
+  -proxy-default-resize		 Default width and height if no values were given in url 		
 `
 
 type URLSignature struct {
@@ -240,6 +243,7 @@ func main() {
 			ImaginaryPort: getPort(*aPort),
 			ProxyPort:     getPort(*aProxyPort),
 			Endpoint:      *aProxyUrlSource,
+			DefaultResize: *aProxyDefaultResize,
 		}
 
 		go ServerProxy(proxyOpts)
